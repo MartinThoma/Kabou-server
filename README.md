@@ -70,12 +70,13 @@ reveal a card:
 ## API
 
 All POST and PUT requests return the created / edited object in JSON format.
+Don't forget to set the content type to `application/json`.
 
 * `/player`:
-  * PUT: Create a new player (name, password) - gets identifier
-  * POST: Edit a player (name, description, repository)
+  * POST: Create a new player (name, password) - gets identifier
+  * PUT: Edit a player (name, description, repository)
 * `/game`:
-  * PUT: Create a new game (password (optinally)) - returns game object with identifier
+  * POST: Create a new game (password (optinally)) - returns game object with identifier
 * `/game/ID`:
   * GET: Give current status (player ids, order of players, number of cards in front of each player, whos turn it is, which round it is, current number of points per player)
   * POST: A move
