@@ -1,13 +1,18 @@
 #!/usr/bin/env python
+
+"""
+A server to manage Kabou games.
+"""
+
 from flask import Flask, jsonify, request
 import logging
 import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey
-from werkzeug import generate_password_hash  #, check_password_hash
-from flask.ext.restful import Api, Resource
+from sqlalchemy import Column, Integer, String, ForeignKey, ForeignKeyConstraint
+from werkzeug import generate_password_hash  # , check_password_hash
+# from flask.ext.restful import Api, Resource
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
@@ -77,6 +82,21 @@ class Player(Base):
 
     def get_dict(self):
         return {'id': self.id, 'name': self.name}
+
+
+class PlayerInGame(Base):
+    """Say which players are in which game."""
+    __tablename__ = 'player_in_game'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    player_id = Column(Integer, ForeignKey('players.id'))
+    game_id = Column(Integer, ForeignKey('games.id'))
+
+    # __table_args__ = (
+    #     ForeignKeyConstraint(
+    #         ['player_id', 'game_id'],
+    #         ['players.id', 'games.id'],
+    #         name="fk_games_players"),
+    # )
 
 
 @app.route('/api/v1.0/player', methods=['GET'])
