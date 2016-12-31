@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
-"""
-A server to manage Kabou games.
-"""
+"""A server to manage Kabou games."""
 
-from flask import Flask, jsonify, request
+from flask import Flask, request
+from flask.ext.jsonpify import jsonify
 import logging
 import sys
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey, ForeignKeyConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey
+# from sqlalchemy import ForeignKeyConstraint
 from werkzeug import generate_password_hash  # , check_password_hash
 # from flask.ext.restful import Api, Resource
 
@@ -37,8 +38,10 @@ class Game(Base):
 
     def add_player(self, player):
         """
-        Add a player to the current game. Once a game is started (e.g. the
-        first round began) no new player may join.
+        Add a player to the current game.
+
+        Once a game is started (e.g. the first round began) no new player may
+        join.
 
         Parameters
         ----------
@@ -55,9 +58,15 @@ class Game(Base):
                                      '2 players.'})
         self.rounds.append(Round(self.players))
 
+    def get_dict(self):
+        return {'id': str(self.id),
+                'password': self.password,
+                'rounds': self.rounds,
+                'players': self.players}
+
 
 class Round(Base):
-    """ A round belongs to a game. """
+    """A round belongs to a game."""
 
     __tablename__ = 'rounds'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -70,7 +79,8 @@ class Round(Base):
 
 
 class Player(Base):
-    """ Represents a player of Kabou. This might be an A.I. or a human. """
+    """Represents a player of Kabou. This might be an A.I. or a human."""
+
     __tablename__ = 'players'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=True)
@@ -86,6 +96,7 @@ class Player(Base):
 
 class PlayerInGame(Base):
     """Say which players are in which game."""
+
     __tablename__ = 'player_in_game'
     id = Column(Integer, primary_key=True, autoincrement=True)
     player_id = Column(Integer, ForeignKey('players.id'))
@@ -107,29 +118,45 @@ def get_players():
 
 @app.route('/api/v1.0/player', methods=['POST'])
 def create_player():
-    if not request.json or 'password' not in request.json or \
-       'name' not in request.json:
-        return jsonify({'error': '"name" and "password" '
-                                 'have to be specified.'})
-    else:
+    if request.form and 'password' in request.form and 'name' in request.form:
+        name = request.form['name']
+        password = request.form['password']
+    elif (request.json and 'password' in request.json and
+          'name' in request.json):
         name = request.json['name']
         password = request.json['password']
+    else:
+        return jsonify({'error': '"name" and "password" '
+                                 'have to be specified.'})
+
     player = Player(name=name, password=password)
-    session.add(player)
-    session.commit()
+    try:
+        session.add(player)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        return jsonify({'error': 'player already exists.'})
     return jsonify(player.get_dict())
 
 
 @app.route('/api/v1.0/game', methods=['POST'])
 def create_game():
-    if not request.json or 'password' not in request.json:
-        password = None
-    else:
+    if request.form and 'password' in request.form:
+        password = request.form['password']
+    elif request.json and 'password' in request.json:
         password = request.json['password']
+    else:
+        password = None
     game = Game(password)
     session.add(game)
     session.commit()
-    return jsonify(game.__dict__)
+    return jsonify(game.get_dict())
+
+
+@app.route('/api/v1.0/game', methods=['GET'])
+def get_games():
+    games = session.query(Game)
+    return jsonify({'games': [ob.get_dict() for ob in games]})
 
 
 Base.metadata.create_all(engine)

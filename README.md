@@ -67,10 +67,23 @@ reveal a card:
    other players cards. If they don't want to do it, they have to say they are
    done.
 
+
+## How to use
+
+Requriements:
+
+* `pip install flask-jsonpify`
+
+Start the server with `python app.py`. Go to `http://127.0.0.1:5000/` to see
+it.
+
+
 ## API
 
 All POST and PUT requests return the created / edited object in JSON format.
 Don't forget to set the content type to `application/json`.
+
+The base url is `http://127.0.0.1:5000/api/v1.0`.
 
 * `/player`:
   * POST: Create a new player (name, password) - gets identifier
